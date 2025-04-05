@@ -33,12 +33,17 @@ login1 = password
 login2 = password
 
 [access_levels]
-admin = 3
-user = 1
+# Уровень доступа:
+# 1 – базовый (нет прав на создание/удаление/перемещение),
+# 2 – создание, перемещение файлов и папок,
+# 3 – создание, перемещение и удаление файлов.
+login1 = 3
+login2 = 1
 
 [restrictions]
 restricted_files = logs.txt, pong, pong.txt, snake, snake.txt, div, div.txt
 restricted_folders = C:, D:, External Drive:, Logs
+# Могут быть проблемы с двоеточием в названии диска. Не рекомендуется к использованию ":".
 
 [folder_visibility]
 superadmin = your_superadmin_login
