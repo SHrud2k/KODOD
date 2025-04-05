@@ -45,8 +45,8 @@ superadmin = your_superadmin_login
 ```
 
 ## Структура проекта
-
-kodщв/
+```
+kodod/
 ├── config.ini
 ├── manage.py
 ├── requirements.txt
@@ -81,6 +81,7 @@ kodщв/
         ├── minigame_settings.json
         ├── hacking_words.json
         └── ascii_animation.json
+```
 
 ## Важные замечания
 
