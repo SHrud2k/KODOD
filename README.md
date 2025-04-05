@@ -54,12 +54,16 @@ superadmin = your_superadmin_login
 kodod/
 ├── config.ini
 ├── manage.py
-├── requirements.txt
 ├── hidden_folders.json
 ├── KOD OS 1.5/
 │   ├── ... (файлы и папки для рп процесса - что будут видеть игроки)
+├── kodproject/
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 ├── main/
 │   ├── views.py
+│   ├── middleware.py
 │   ├── urls.py
 │   └── templates/
 │       └── main/
@@ -73,15 +77,21 @@ kodod/
 │           └── hacking.html
 └── static/
     ├── images/
+    │   ├── favicon.ico
     │   ├── file_add.png
     │   ├── folder_add.png
     │   ├── file_delete.png
     │   ├── folder_delete.png
     │   ├── move_file.png
-    │   └── move_dest.png
+    │   ├── move_dest.png
+    │   └── logo.png
     ├── js/
     │   ├── move_file.js
+    │   ├── hacking.js
     │   └── ascii.js
+    ├── sounds/
+    │   ├── select.wav
+    │   └── typing.wav
     └── json/
         ├── minigame_settings.json
         ├── hacking_words.json
