@@ -1,0 +1,84 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Просмотр файла: {{ filename }} - KOD OS{% endblock %}
+{% block extra_head %}
+<style>
+  /* Обеспечиваем корректный перенос строк и разбиение длинных слов */
+  #content {
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+  }
+  .filename-heading {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #0F0;
+      text-shadow: 0 0 5px rgba(0,255,0,0.6);
+      font-weight: bold;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<h1>Просмотр файла</h1>
+<div class="terminal-box">
+    <div class="filename-heading">Файл: {{ filename }}</div>
+    <!-- Контейнер для динамического вывода содержимого -->
+    <div id="content"></div>
+</div>
+<div class="button-container">
+    <a href="{% url 'file_manager' %}" class="btn">Вернуться к менеджеру файлов</a>
+    <!-- Кнопка редактирования: если нужно ограничить по доступу, можно обернуть условием -->
+    <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Редактировать</a>
+</div>
+<!-- Скрытый элемент для хранения исходного текста файла -->
+<script id="fileContent" type="text/plain">{{ content|escapejs }}</script>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    var rawText = document.getElementById("fileContent").textContent;
+
+    // Функция декодирует Unicode-escape последовательности
+    function decodeUnicode(str) {
+        return str.replace(/\\u([\d\w]{4})/gi, function(match, grp) {
+            return String.fromCharCode(parseInt(grp, 16));
+        });
+    }
+    var decodedText = decodeUnicode(rawText);
+    // Заменяем остаточные "\n" на реальные переносы строк
+    decodedText = decodedText.replace(/\\n/g, "\n");
+
+    var contentDiv = document.getElementById("content");
+    var index = 0;
+    var typingSound = new Audio("{% static 'sounds/typing.wav' %}");
+
+    // Функция, которая "печатает" содержимое с учетом HTML-тегов
+    function typeLetter() {
+        if (index < decodedText.length) {
+            if (decodedText[index] === '<') {
+                var closeIndex = decodedText.indexOf('>', index);
+                if (closeIndex === -1) {
+                    contentDiv.innerHTML += decodedText.substring(index);
+                    index = decodedText.length;
+                } else {
+                    var tag = decodedText.substring(index, closeIndex + 1);
+                    contentDiv.innerHTML += tag;
+                    index = closeIndex + 1;
+                }
+            } else {
+                contentDiv.innerHTML += decodedText.charAt(index);
+                index++;
+            }
+            if (index % 3 === 0) {
+                var clone = typingSound.cloneNode();
+                clone.play();
+            }
+            setTimeout(typeLetter, 25);
+        } else {
+            contentDiv.innerHTML += '<span class="blinking-cursor"></span>';
+        }
+    }
+    typeLetter();
+});
+</script>
+{% endblock %}

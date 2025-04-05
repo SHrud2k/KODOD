@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Редактирование файла: {{ filename }}{% endblock %}
+{% block content %}
+<h1>Редактирование файла: {{ filename }}</h1>
+<form method="post">
+    {% csrf_token %}
+    <div class="terminal-box" style="margin-bottom: 15px;">
+        <textarea name="content" style="width:100%; height:400px; background:#000; color:#0F0; font-family: 'Courier New', monospace; border: none; padding: 10px;">
+{{ content|escape }}
+        </textarea>
+    </div>
+    <div class="button-container">
+        <button type="submit" class="btn">Сохранить изменения</button>
+        <a href="{% url 'file_view' %}?file={{ file|urlencode }}" class="btn">Отменить</a>
+    </div>
+</form>
+{% endblock %}

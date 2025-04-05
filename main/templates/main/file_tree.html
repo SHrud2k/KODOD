@@ -1,0 +1,110 @@
+{% load static %}
+{% block extra_js %}
+<script src="{% static 'js/move_file.js' %}"></script>
+{% endblock %}
+<ul id="file-tree">
+{% for node in tree %}
+    <li style="margin-bottom: 5px;">
+    {% if node.type == "dir" %}
+        <div class="folder-header">
+            {% if current_user == superadmin and node.is_hidden %}
+                <span class="folder" data-folder="{{ node.full_path|urlencode }}" style="color: red;" onclick="toggleFolder(this); playSelectionSound();">
+                    {{ node.name }}
+                </span>
+            {% else %}
+                <span class="folder" data-folder="{{ node.full_path|urlencode }}" onclick="toggleFolder(this); playSelectionSound();">
+                    {{ node.name }}
+                </span>
+            {% endif %}
+            {% if current_user == superadmin %}
+                <a href="{% url 'toggle_folder_visibility' %}?folder={{ node.full_path|urlencode }}" title="Скрыть/Показать папку" style="color:#0F0; margin-left:5px;">[toggle]</a>
+            {% endif %}
+            {% if access_level|default:1 >= 2 %}
+                <a href="{% url 'create_file' %}?folder={{ node.full_path|urlencode }}" title="Создать файл" style="color:#0F0; margin-left:5px;">
+                    <img src="{% static 'images/file_add.png' %}" alt="Создать файл" style="width:16px;height:16px; background-color: transparent;">
+                </a>
+                <a href="{% url 'create_folder' %}?folder={{ node.full_path|urlencode }}" title="Создать папку" style="color:#0F0; margin-left:5px;">
+                    <img src="{% static 'images/folder_add.png' %}" alt="Создать папку" style="width:16px;height:16px; background-color: transparent;">
+                </a>
+            {% endif %}
+            {% if access_level|default:1 >= 3 %}
+                <a href="{% url 'delete_folder' %}?folder={{ node.full_path|urlencode }}" title="Удалить папку" style="color:#F00; margin-left:5px;">
+                    <img src="{% static 'images/folder_delete.png' %}" alt="Удалить папку" style="width:16px;height:16px; background-color: transparent;">
+                </a>
+            {% endif %}
+            {% if access_level|default:1 >= 2 %}
+                <!-- Кнопка-приёмник для перемещения файла, изначально скрыта -->
+                <button class="move-dest-btn" data-folder-path="{{ node.full_path|urlencode }}" title="Переместить сюда" style="display:none; margin-left:5px; background-color: transparent; border: none;">
+                    <img src="{% static 'images/move_dest.png' %}" alt="Переместить сюда" style="width:16px;height:16px; background-color: transparent;">
+                </button>
+            {% endif %}
+        </div>
+        {% if node.children %}
+            <div class="children" style="display:none; margin-left:20px;">
+                {% include "main/file_tree.html" with tree=node.children current_user=current_user superadmin=superadmin access_level=access_level %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="file-entry">
+            <a href="{% url 'file_view' %}?file={{ node.path|urlencode }}" style="color:#0F0;" onclick="playSelectionSound();">
+                {{ node.name }}
+            </a>
+            {% if access_level|default:1 >= 2 %}
+                <!-- Кнопка перемещения файла (иконка стрелки вправо) -->
+                <button class="move-file-btn" data-file-path="{{ node.path|urlencode }}" title="Переместить файл" style="margin-left:5px; background-color: transparent; border: none;">
+                    <img src="{% static 'images/move_file.png' %}" alt="Переместить файл" style="width:16px;height:16px; background-color: transparent;">
+                </button>
+            {% endif %}
+            {% if access_level|default:1 >= 3 %}
+                <a href="{% url 'delete_file' %}?file={{ node.path|urlencode }}" title="Удалить файл" style="color:#F00; margin-left:5px;">
+                    <img src="{% static 'images/file_delete.png' %}" alt="Удалить файл" style="width:16px;height:16px; background-color: transparent;">
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+    </li>
+{% endfor %}
+</ul>
+
+<script>
+// Функция раскрытия/сворачивания папок
+function toggleFolder(element) {
+    var headerDiv = element.parentElement;
+    var next = headerDiv.nextElementSibling;
+    if (next && next.classList.contains('children')) {
+        if (next.style.display === "none" || next.style.display === "") {
+            next.style.display = "block";
+            element.classList.add('open');
+            localStorage.setItem("folder_" + element.getAttribute("data-folder"), "expanded");
+        } else {
+            next.style.display = "none";
+            element.classList.remove('open');
+            localStorage.setItem("folder_" + element.getAttribute("data-folder"), "collapsed");
+        }
+    }
+}
+
+// Функция воспроизведения звука (если используется)
+function playSelectionSound() {
+    var selectSound = new Audio("{% static 'sounds/select.wav' %}");
+    var clone = selectSound.cloneNode();
+    clone.play();
+}
+
+// Восстанавливаем состояние раскрытых папок
+document.addEventListener("DOMContentLoaded", function() {
+    var folders = document.querySelectorAll(".folder");
+    folders.forEach(function(folder) {
+        var folderId = folder.getAttribute("data-folder");
+        var state = localStorage.getItem("folder_" + folderId);
+        if (state === "expanded") {
+            var headerDiv = folder.parentElement;
+            var next = headerDiv.nextElementSibling;
+            if (next && next.classList.contains('children')) {
+                next.style.display = "block";
+                folder.classList.add('open');
+            }
+        }
+    });
+});
+</script>

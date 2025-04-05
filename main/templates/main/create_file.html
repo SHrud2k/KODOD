@@ -1,0 +1,20 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Создание файла - KOD OS{% endblock %}
+{% block content %}
+<h1>Создание нового файла</h1>
+{% if error %}
+  <div style="color: red; font-weight: bold; margin-bottom: 10px;">{{ error }}</div>
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <label for="filename">Название файла:</label><br>
+    <input type="text" id="filename" name="filename" placeholder="Введите название файла" style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"><br><br>
+    <label for="content">Содержимое файла:</label><br>
+    <textarea id="content" name="content" rows="10" style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"></textarea><br><br>
+    <div class="button-container">
+        <button type="submit" class="btn">Сохранить</button>
+        <a href="{% url 'file_manager' %}" class="btn">Отмена</a>
+    </div>
+</form>
+{% endblock %}

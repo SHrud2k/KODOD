@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Создать папку - KOD OS{% endblock %}
+{% block content %}
+<h1>Создание новой папки</h1>
+{% if error %}
+  <div style="color: red; font-weight: bold; margin-bottom: 10px;">{{ error }}</div>
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <label for="folder_name">Название папки:</label><br>
+    <input type="text" id="folder_name" name="folder_name" placeholder="Введите название папки" style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"><br><br>
+    <div class="button-container">
+        <button type="submit" class="btn">Создать</button>
+        <a href="{% url 'file_manager' %}" class="btn">Отмена</a>
+    </div>
+</form>
+{% endblock %}

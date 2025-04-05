@@ -1,0 +1,21 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Login - KOD OS{% endblock %}
+{% block content %}
+<h1>Login</h1>
+{% if error %}
+  <p style="color:red;">{{ error }}</p>
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    <label for="login">Login:</label><br>
+    <input type="text" id="login" name="login" placeholder="Введите логин"
+           style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"><br><br>
+    <label for="password">Password:</label><br>
+    <input type="password" id="password" name="password" placeholder="Введите пароль"
+           style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"><br><br>
+    <div class="button-container">
+        <button type="submit" class="btn">Войти</button>
+    </div>
+</form>
+{% endblock %}
