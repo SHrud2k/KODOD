@@ -42,7 +42,7 @@ login2 = 1
 
 [restrictions]
 restricted_files = logs.txt, pong, pong.txt, snake, snake.txt, div, div.txt
-restricted_folders = C:, D:, External Drive:, Logs
+restricted_folders = C, D:, External Drive:, Logs
 # Могут быть проблемы с двоеточием в названии диска. Не рекомендуется к использованию ":".
 
 [folder_visibility]
@@ -56,11 +56,7 @@ kodod/
 ├── manage.py
 ├── hidden_folders.json
 ├── KOD OS 1.5/
-│   ├── ... (файлы и папки для рп процесса - что будут видеть игроки)
-├── kodproject/
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
+│   └── ... (файлы и папки для рп процесса - что будут видеть игроки)
 ├── main/
 │   ├── views.py
 │   ├── middleware.py

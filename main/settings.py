@@ -3,8 +3,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = 'ваш_секретный_ключ'
-DEBUG =False
-ALLOWED_HOSTS = ['shrud2k.pythonanywhere.com']
+DEBUG = True
+ALLOWED_HOSTS = ['shrud2k.pythonanywhere.com', '127.0.0.1', 'localhost']
 
 INSTALLED_APPS = [
     'django.contrib.sessions',
@@ -23,7 +23,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'kodproject.urls'
+ROOT_URLCONF = 'main.urls'
 
 TEMPLATES = [
     {
@@ -38,7 +38,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'kodproject.wsgi.application'
+WSGI_APPLICATION = 'main.wsgi.application'
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
