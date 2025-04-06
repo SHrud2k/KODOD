@@ -4,13 +4,16 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = 'ваш_секретный_ключ'
 DEBUG = True
-ALLOWED_HOSTS = ['shrud2k.pythonanywhere.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['shrud2k.pythonanywhere.com', '127.0.0.1', 'localhost', 'testserver']
 
 INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.messages",
+    "django.contrib.admin",
     'main',
-    # другие приложения, если есть
 ]
 
 MIDDLEWARE = [
@@ -53,3 +56,10 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+SILENCED_SYSTEM_CHECKS=[
+        "admin.E402",
+        "admin.E404",
+        "admin.E408",
+        "admin.E409",
+    ]

@@ -6,6 +6,7 @@ logs
 db.sqlite3
 hidden_folders.json
 main/settings.py
+main/tests.py
 
 .idea/.gitignore
 .idea/KODOD.iml
