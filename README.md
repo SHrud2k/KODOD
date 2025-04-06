@@ -47,6 +47,17 @@ restricted_folders = C, D:, External Drive:, Logs
 
 [folder_visibility]
 superadmin = your_superadmin_login
+
+[groups]
+clear_sky = login1, login2
+science = test1
+mercs = test2
+
+[group_folders]
+clear_sky = Clear_sky
+science = Science
+mercs = Merc
+vsu = Vsu
 ```
 
 ## Структура проекта
