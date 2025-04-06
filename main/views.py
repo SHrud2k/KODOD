@@ -301,14 +301,13 @@ def file_view(request):
 
 def process_file_content(content):
     """
-    Ищет в тексте ссылки на изображения и заменяет их на HTML-элемент <img>.
-    Поддерживаемые расширения: jpg, jpeg, png, gif.
-    Теперь в URL заменяются амперсанды на &amp; для корректного рендеринга.
+    Ищет в тексте URL изображений (jpg, jpeg, png, gif), включая параметры запроса,
+    и заменяет их на тег <img>. Теперь используется жадный квантификатор.
     """
-    pattern = r'(https?://[^\s]+?\.(?:jpg|jpeg|png|gif)(\?[^\s]+)?)'
+    pattern = r'(https?://[^\s]+\.(?:jpg|jpeg|png|gif)(?:\?[^\s]+)?)(?=$|\s|[\'"<>])'
     def repl(match):
-        url = match.group(0)
-        # Заменяем амперсанды на &amp;
+        url = match.group(1)
+        # Заменяем амперсанды на HTML-сущность для корректного отображения
         safe_url = url.replace("&", "&amp;")
         return f'<img src="{safe_url}" alt="Image" style="max-width:100%; margin:5px 0;">'
     processed = re.sub(pattern, repl, content, flags=re.IGNORECASE)

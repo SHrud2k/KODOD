@@ -27,7 +27,6 @@
 </div>
 <div class="button-container">
     <a href="{% url 'file_manager' %}" class="btn">Вернуться к менеджеру файлов</a>
-    <!-- Кнопка редактирования: если нужно ограничить по доступу, можно обернуть условием -->
     <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Редактировать</a>
 </div>
 <!-- Скрытый элемент для хранения исходного текста файла -->
@@ -38,7 +37,7 @@
 document.addEventListener("DOMContentLoaded", function(){
     var rawText = document.getElementById("fileContent").textContent;
 
-    // Функция декодирует Unicode-escape последовательности
+    // Функция для декодирования Unicode-escape последовательностей
     function decodeUnicode(str) {
         return str.replace(/\\u([\d\w]{4})/gi, function(match, grp) {
             return String.fromCharCode(parseInt(grp, 16));
@@ -48,11 +47,21 @@ document.addEventListener("DOMContentLoaded", function(){
     // Заменяем остаточные "\n" на реальные переносы строк
     decodedText = decodedText.replace(/\\n/g, "\n");
 
+    // Обработка ссылок на изображения: ищем URL, заканчивающиеся на jpg, jpeg, png или gif,
+    // включая необязательную часть с параметрами, и заменяем их на тег <img>
+    var processedText = decodedText.replace(/(https?:\/\/\S+\.(?:jpg|jpeg|png|gif)(?:\?\S+)?)(?=[\s'"<>]|$)/gi, function(match) {
+        // Заменяем амперсанды для корректного HTML
+        var safeUrl = match.replace(/&/g, "&amp;");
+        return '<img src="' + safeUrl + '" alt="Image" style="max-width:100%; margin:5px 0;">';
+    });
+    decodedText = processedText;
+
     var contentDiv = document.getElementById("content");
     var index = 0;
     var typingSound = new Audio("{% static 'sounds/typing.wav' %}");
 
-    // Функция, которая "печатает" содержимое с учетом HTML-тегов
+    // Функция, которая "печатает" содержимое с поддержкой HTML-тегов:
+    // если встречается тег (<), ищет закрывающую '>' и выводит тег целиком.
     function typeLetter() {
         if (index < decodedText.length) {
             if (decodedText[index] === '<') {

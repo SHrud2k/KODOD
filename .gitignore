@@ -1,5 +1,7 @@
-*.venv
-*KOD OS 1.5
+.venv
+KOD OS 1.5
 
 config.ini
 logs
+db.sqlite3
+hidden_folders.json
