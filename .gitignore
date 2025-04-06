@@ -5,3 +5,12 @@ config.ini
 logs
 db.sqlite3
 hidden_folders.json
+
+.idea/.gitignore
+.idea/KODOD.iml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+
+__pycache__
