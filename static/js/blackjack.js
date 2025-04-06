@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", function() {
     let playerHand = [];
     let dealerHand = [];
     let gameOver = false;
+    // Флаг, показывающий, что скрытая карта дилера раскрыта
+    let dealerTurn = false;
     let lastPlayerCount = 0;
     let lastDealerCount = 0;
 
@@ -49,32 +51,50 @@ document.addEventListener("DOMContentLoaded", function() {
         return score;
     }
 
-    function displayHand(hand) {
-        return hand.map(card => card.value + card.suit).join(" ");
-    }
-
-    // Функция рендеринга руки. Если isDealer=true и игра не окончена, показываем только первую карту дилера.
+    // Функция рендеринга руки.
+    // До раскрытия скрытой карты (dealerTurn==false) для дилера показывается первая карта и placeholder.
+    // Когда dealerTurn==true или игра окончена, отображаются все карты дилера.
     function renderHand(container, hand, isDealer = false) {
-        if (isDealer && !gameOver) {
-            container.innerText = "Карты дилера: " + dealerHand[0].value + dealerHand[0].suit + " ?";
-            return;
-        }
         container.innerHTML = (isDealer ? "Карты дилера: " : "Ваши карты: ");
-        hand.forEach((card, index) => {
-            let span = document.createElement("span");
-            span.innerText = card.value + card.suit + " ";
-            // Если это новая карта, добавляем класс для анимации (CSS класс fade-in-card)
-            if ((isDealer && index >= lastDealerCount) || (!isDealer && index >= lastPlayerCount)) {
-                span.classList.add("fade-in-card");
+        if (isDealer && !dealerTurn && !gameOver) {
+            // До раскрытия скрытой карты показываем только первую карту
+            if (hand.length > 0) {
+                let span = document.createElement("span");
+                span.innerText = hand[0].value + hand[0].suit + " ";
+                span.style.display = "inline-block";
+                span.style.marginRight = "5px";
+                if (lastDealerCount === 0) {
+                    span.classList.add("fade-in-card");
+                }
+                container.appendChild(span);
             }
-            container.appendChild(span);
-        });
-        if (!isDealer) {
-            container.innerHTML += " (Счет: " + handScore(hand) + ")";
-            lastPlayerCount = hand.length;
-        } else {
-            container.innerHTML += " (Счет: " + handScore(hand) + ")";
+            // Добавляем placeholder для скрытой карты
+            let placeholder = document.createElement("span");
+            placeholder.innerText = " ? ";
+            placeholder.style.display = "inline-block";
+            placeholder.style.marginRight = "5px";
+            container.appendChild(placeholder);
+            container.innerHTML += " (Счет: ?)";
             lastDealerCount = hand.length;
+        } else {
+            // Отображаем все карты
+            hand.forEach((card, index) => {
+                let span = document.createElement("span");
+                span.innerText = card.value + card.suit + " ";
+                span.style.display = "inline-block";
+                span.style.marginRight = "5px";
+                if ((isDealer && index >= lastDealerCount) || (!isDealer && index >= lastPlayerCount)) {
+                    span.classList.add("fade-in-card");
+                }
+                container.appendChild(span);
+            });
+            if (!isDealer) {
+                container.innerHTML += " (Счет: " + handScore(hand) + ")";
+                lastPlayerCount = hand.length;
+            } else {
+                container.innerHTML += " (Счет: " + handScore(hand) + ")";
+                lastDealerCount = hand.length;
+            }
         }
     }
 
@@ -84,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function() {
         scoreDiv.innerText = "";
     }
 
-    // Анимация колоды: добавляем класс "shake" к элементу колоды на заданное время
+    // Анимация колоды: добавляем класс "shake" к элементу колоды на заданное время.
     function animateDeck() {
         if (deckDiv) {
             deckDiv.classList.add("shake");
@@ -94,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    // Анимация перемещения карты дилера: принимает объект card и callback.
+    // Анимация перемещения карты дилера: карта перемещается из позиции колоды в область дилера.
     function animateDealerCard(card, callback) {
         let tempCard = document.createElement("div");
         tempCard.innerText = card.value + card.suit;
@@ -115,8 +135,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Определяем целевую позицию: центр области дилера (dealerCardsDiv)
         let dealerRect = dealerCardsDiv.getBoundingClientRect();
-        let targetX = dealerRect.left + dealerRect.width/2 - 20; // отрегулируйте по необходимости
-        let targetY = dealerRect.top + dealerRect.height/2 - 20;
+        let targetX = dealerRect.left + dealerRect.width / 2 - 20;
+        let targetY = dealerRect.top + dealerRect.height / 2 - 20;
 
         setTimeout(() => {
             tempCard.style.left = targetX + "px";
@@ -129,7 +149,8 @@ document.addEventListener("DOMContentLoaded", function() {
         }, CARD_ANIMATION_DURATION + 100);
     }
 
-    // Функция добора карт дилера с анимацией: если счет дилера меньше 17, анимированно добираем карту.
+    // Функция добора карт дилера с анимацией.
+    // Для каждого вытягиваемого элемента запускается анимация колоды и перемещения карты.
     function dealerDraw(callback) {
         if (handScore(dealerHand) < 17) {
             if (deck.length === 0) {
@@ -137,10 +158,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
             let card = deck.pop();
-            animateDealerCard(card, function(){
+            animateDeck();
+            animateDealerCard(card, function() {
                 dealerHand.push(card);
                 updateDisplay();
-                setTimeout(function(){
+                setTimeout(function() {
                     dealerDraw(callback);
                 }, CARD_DRAW_DELAY);
             });
@@ -154,6 +176,7 @@ document.addEventListener("DOMContentLoaded", function() {
         playerHand = [];
         dealerHand = [];
         gameOver = false;
+        dealerTurn = false;
         lastPlayerCount = 0;
         lastDealerCount = 0;
         statusDiv.innerText = "Ваш ход";
@@ -167,8 +190,8 @@ document.addEventListener("DOMContentLoaded", function() {
         updateDisplay();
     }
 
+    // При нажатии кнопки Hit добавляется карта игрока без анимации тряски колоды.
     function playerHit() {
-        animateDeck();
         playerHand.push(deck.pop());
         updateDisplay();
         if (handScore(playerHand) > 21) {
@@ -176,7 +199,11 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    // При нажатии на Stand сначала раскрывается скрытая карта дилера,
+    // затем запускается анимация добора оставшихся карт дилером.
     function playerStand() {
+        dealerTurn = true;  // раскрываем скрытую карту дилера
+        updateDisplay();    // обновляем отображение, чтобы скрытая карта стала видна
         dealerDraw(function() {
             let playerScore = handScore(playerHand);
             let dealerScore = handScore(dealerHand);
