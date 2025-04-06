@@ -17,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Папка с файлами (например, "KOD OS 1.5")
 FILES_FOLDER = os.path.join(BASE_DIR, "KOD OS 1.5")
 # Папка для логов (согласно вашим настройкам)
-LOG_DIR = os.path.join(BASE_DIR, "KOD OS 1.5/C:/logs")
+LOG_DIR = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
@@ -114,6 +114,35 @@ def log_event(event_type, message):
     except Exception as e:
         print("Log write error:", e)
 
+def get_user_group(user):
+    """
+    Определяет группу, в которую входит пользователь, сверяя его логин с данными из секции [groups] config.ini.
+    Если пользователь не найден в группах, возвращает None.
+    """
+    config = configparser.ConfigParser()
+    config_path = os.path.join(BASE_DIR, "config.ini")
+    config.read(config_path)
+    if config.has_section("groups"):
+        for group in config.options("groups"):
+            users_str = config.get("groups", group)
+            users = [u.strip() for u in users_str.split(",") if u.strip()]
+            if user in users:
+                return group
+    return None
+
+def get_group_folder(user_group):
+    """
+    Для заданной группы (например, "group1") возвращает название разрешённой корневой папки,
+    как указано в секции [group_folders] config.ini.
+    Если группа не задана или не найдена, возвращает None.
+    """
+    config = configparser.ConfigParser()
+    config_path = os.path.join(BASE_DIR, "config.ini")
+    config.read(config_path)
+    if user_group and config.has_section("group_folders") and config.has_option("group_folders", user_group):
+        return config.get("group_folders", user_group).strip()
+    return None
+
 # ---------------------- Представления ----------------------
 
 def login_view(request):
@@ -171,22 +200,46 @@ def build_file_tree(path, current_user=None):
         print("Ошибка при построении дерева:", e)
     return tree
 
+
 def file_manager(request):
     if not request.session.get("logged_in"):
         return redirect("login")
     current_user = request.session.get("login", "unknown")
-    tree = build_file_tree(FILES_FOLDER, current_user)
+    superadmin = read_folder_visibility_config()  # Например, "admin"
+
+    # Если пользователь является суперадмином, ему показываем все файлы
+    if current_user == superadmin:
+        folder_path = FILES_FOLDER
+    else:
+        # Определяем группу пользователя
+        user_group = get_user_group(current_user)
+        if user_group is None:
+            error = "Вам не назначена группа доступа — файлы не отображаются."
+            return render(request, "main/file_manager.html", {
+                "tree": [],
+                "error": error,
+                "current_user": current_user,
+                "superadmin": superadmin,
+                "access_level": read_access_levels().get(current_user, 1),
+            })
+        # Получаем разрешённую папку для группы
+        allowed_folder_name = get_group_folder(user_group)
+        if allowed_folder_name:
+            folder_path = os.path.join(FILES_FOLDER, allowed_folder_name)
+        else:
+            folder_path = FILES_FOLDER
+    tree = build_file_tree(folder_path, current_user)
     error = request.GET.get("error", "")
-    superadmin = read_folder_visibility_config()
     access_levels = read_access_levels()
     user_level = access_levels.get(current_user, 1)
     return render(request, "main/file_manager.html", {
-         "tree": tree,
-         "error": error,
-         "current_user": current_user,
-         "superadmin": superadmin,
-         "access_level": user_level,
+        "tree": tree,
+        "error": error,
+        "current_user": current_user,
+        "superadmin": superadmin,
+        "access_level": user_level,
     })
+
 
 def file_view(request):
     if not request.session.get("logged_in"):
@@ -194,11 +247,29 @@ def file_view(request):
     file_path = request.GET.get("file")
     if not file_path:
         return HttpResponse("Файл не указан")
+
     abs_file_path = os.path.abspath(file_path)
     abs_files_folder = os.path.abspath(FILES_FOLDER)
     if not abs_file_path.startswith(abs_files_folder):
         return HttpResponse("Доступ запрещён")
+
     filename = os.path.basename(file_path)
+    current_user = request.session.get("login", "unknown")
+    superadmin = read_folder_visibility_config()  # Значение из [folder_visibility], например, "admin"
+
+    # Если пользователь не является суперадмином, применяем групповые ограничения
+    if current_user != superadmin:
+        user_group = get_user_group(current_user)
+        if user_group is None:
+            return HttpResponse("Доступ запрещён")
+        allowed_folder_name = get_group_folder(user_group)
+        if allowed_folder_name:
+            allowed_folder = os.path.join(FILES_FOLDER, allowed_folder_name)
+            abs_allowed_folder = os.path.abspath(allowed_folder)
+            if not abs_file_path.startswith(abs_allowed_folder):
+                return HttpResponse("Доступ запрещён")
+
+    # Обработка мини-игр по имени файла
     lower_filename = filename.lower()
     if lower_filename in ("snake", "snake.txt"):
         return render(request, "main/snake.html")
@@ -206,23 +277,20 @@ def file_view(request):
         return render(request, "main/pong.html")
     elif lower_filename in ("div", "div.txt"):
         return render(request, "main/hacking.html")
+
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
         content = "Ошибка при открытии файла: " + str(e)
+
     if not content.strip():
         error_code = random.randint(1000, 9999)
         content = f"Ошибка {error_code}: Файл пустой или поврежден."
 
-    # Обработка содержимого: заменяем ссылки на изображения на <img>
-    content = process_file_content(content)
-
-    user = request.session.get("login", "unknown")
-    log_event("OPENED", f"user='{user}', file='{filename}'")
-    # Помечаем содержимое как безопасное, чтобы HTML не экранировался
+    log_event("OPENED", f"user='{current_user}', file='{filename}'")
     return render(request, "main/file_view.html", {
-        "content": mark_safe(content),
+        "content": content,
         "file": file_path,
         "filename": filename
     })
@@ -540,3 +608,6 @@ def hacking_game(request):
     if not request.session.get("logged_in"):
         return redirect("login")
     return render(request, "main/hacking.html")
+
+def custom_404(request, exception):
+    return render(request, "main/404.html", status=404)

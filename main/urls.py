@@ -17,3 +17,5 @@ urlpatterns = [
     path('pong/', views.pong_game, name='pong_game'),
     path('hacking/', views.hacking_game, name='hacking_game'),
 ]
+
+handler404 = "main.views.custom_404"
