@@ -281,6 +281,8 @@ def file_view(request):
         return render(request, "main/pong.html")
     elif lower_filename in ("div", "div.txt"):
         return render(request, "main/hacking.html")
+    elif lower_filename in ("blackjack", "blackjack.txt"):
+        return render(request, "main/blackjack.html")
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -611,6 +613,11 @@ def hacking_game(request):
     if not request.session.get("logged_in"):
         return redirect("login")
     return render(request, "main/hacking.html")
+
+def blackjack_game(request):
+    if not request.session.get("logged_in"):
+        return redirect("login")
+    return render(request, "main/blackjack.html")
 
 def custom_404(request, exception):
     return render(request, "main/404.html", status=404)

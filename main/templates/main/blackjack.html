@@ -1,0 +1,54 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}Blackjack Game - KOD OS{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/animations.css' %}">
+<style>
+  /* Стили для мини-игры Blackjack */
+  #blackjack-container {
+      position: relative;
+      max-width: 600px;
+      margin: 20px auto;
+      background: #000;
+      border: 2px solid #0F0;
+      padding: 20px;
+      color: #0F0;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+  }
+  /* Элемент колоды, располагается в правом верхнем углу игрового контейнера */
+  #deck {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 60px;
+      height: 90px;
+      background: url("{% static 'images/deck.png' %}") no-repeat center center;
+      background-size: contain;
+  }
+</style>
+<link rel="stylesheet" type="text/css" href="{% static 'css/animations.css' %}">
+{% endblock %}
+{% block content %}
+<h1 style="text-align: center;">Blackjack</h1>
+<!-- Элемент колоды -->
+<div id="deck"></div>
+<div id="blackjack-container">
+    <div id="game-status">Начните игру</div>
+    <div id="player-cards">Ваши карты: </div>
+    <div id="dealer-cards">Карты дилера: </div>
+    <div id="score"></div>
+    <div style="margin-top: 20px;">
+        <button id="hitBtn" class="btn">Hit</button>
+        <button id="standBtn" class="btn">Stand</button>
+        <button id="restartBtn" class="btn" style="display:none;">Restart</button>
+    </div>
+    <div id="message" style="margin-top: 20px; font-size:18px;"></div>
+</div>
+<div class="button-container">
+    <a href="{% url 'file_manager' %}" class="btn">Вернуться</a>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/blackjack.js' %}"></script>
+{% endblock %}

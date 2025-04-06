@@ -1,6 +1,11 @@
 {% load static %}
 {% block extra_js %}
 <script src="{% static 'js/move_file.js' %}"></script>
+<!-- Подключаем глобальную переменную для звука (это можно определить в base.html или здесь) -->
+<script>
+    var SELECT_SOUND_URL = "{% static 'sounds/select.wav' %}";
+</script>
+<script src="{% static 'js/file_tree.js' %}"></script>
 {% endblock %}
 <ul id="file-tree">
 {% for node in tree %}
@@ -65,46 +70,3 @@
     </li>
 {% endfor %}
 </ul>
-
-<script>
-// Функция раскрытия/сворачивания папок
-function toggleFolder(element) {
-    var headerDiv = element.parentElement;
-    var next = headerDiv.nextElementSibling;
-    if (next && next.classList.contains('children')) {
-        if (next.style.display === "none" || next.style.display === "") {
-            next.style.display = "block";
-            element.classList.add('open');
-            localStorage.setItem("folder_" + element.getAttribute("data-folder"), "expanded");
-        } else {
-            next.style.display = "none";
-            element.classList.remove('open');
-            localStorage.setItem("folder_" + element.getAttribute("data-folder"), "collapsed");
-        }
-    }
-}
-
-// Функция воспроизведения звука (если используется)
-function playSelectionSound() {
-    var selectSound = new Audio("{% static 'sounds/select.wav' %}");
-    var clone = selectSound.cloneNode();
-    clone.play();
-}
-
-// Восстанавливаем состояние раскрытых папок
-document.addEventListener("DOMContentLoaded", function() {
-    var folders = document.querySelectorAll(".folder");
-    folders.forEach(function(folder) {
-        var folderId = folder.getAttribute("data-folder");
-        var state = localStorage.getItem("folder_" + folderId);
-        if (state === "expanded") {
-            var headerDiv = folder.parentElement;
-            var next = headerDiv.nextElementSibling;
-            if (next && next.classList.contains('children')) {
-                next.style.display = "block";
-                folder.classList.add('open');
-            }
-        }
-    });
-});
-</script>
