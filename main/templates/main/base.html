@@ -2,9 +2,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon" />
     <meta charset="utf-8">
     <title>{% block title %}KOD OS Terminal{% endblock %}</title>
+    {% if request.session.logged_in %}
+        {% with group=request.session.login_group %}
+            <link rel="shortcut icon" href="{% static 'images/favicon_'|add:group|add:'.ico' %}" type="image/x-icon" />
+        {% endwith %}
+    {% else %}
+        <link rel="shortcut icon" href="{% static 'images/favicon_default.ico' %}" type="image/x-icon" />
+    {% endif %}
     <style>
         /* Основной терминальный стиль */
         body {
@@ -141,7 +147,13 @@
 </head>
 <body>
     <div id="logo">
-        <img src="{% static 'images/logo.png' %}" alt="Логотип Чистого неба">
+        {% if request.session.logged_in %}
+            {% with group=request.session.login_group %}
+                <img src="{% static 'images/logo_'|add:group|add:'.png' %}" alt="Логотип {{ group }}">
+            {% endwith %}
+        {% else %}
+            <img src="{% static 'images/logo_default.png' %}" alt="Логотип по умолчанию">
+        {% endif %}
     </div>
     <div id="asciiAnimation"></div>
     <div class="container">

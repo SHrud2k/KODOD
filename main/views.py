@@ -153,6 +153,10 @@ def login_view(request):
         if login_input in credentials and password_input == credentials[login_input]:
             request.session['logged_in'] = True
             request.session['login'] = login_input
+            # Определяем группу пользователя и сохраняем её в сессии.
+            user_group = get_user_group(login_input)
+            # Если группа не найдена, устанавливаем fallback, например "default"
+            request.session['login_group'] = user_group if user_group else "default"
             log_event("SUCCESS", f"login='{login_input}'")
             return redirect("file_manager")
         else:
