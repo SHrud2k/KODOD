@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function(){
-    console.log("Hacking game script loaded");
 
     // Функция для получения JSON через fetch
     function fetchJSON(url) {
@@ -173,7 +172,6 @@ document.addEventListener("DOMContentLoaded", function(){
       .then(function(settingsData) {
           var allowedAttempts = settingsData.allowed_attempts;
           var restartTimeout = settingsData.restart_timeout;
-          console.log("Settings:", allowedAttempts, restartTimeout);
           // Если таймер уже активен, блокировка выбора уже запустится
           if (checkPersistentCountdown(restartTimeout)) {
               console.log("Timer active – game is locked");
@@ -191,8 +189,6 @@ document.addEventListener("DOMContentLoaded", function(){
                 }
                 var selected = chooseCandidates(availableWords, 16, 26);
                 var correctWord = selected[Math.floor(Math.random() * selected.length)];
-                console.log("Selected candidates:", selected);
-                console.log("Correct word:", correctWord);
                 initHackingGame(selected, correctWord, allowedAttempts, restartTimeout);
             });
       })
