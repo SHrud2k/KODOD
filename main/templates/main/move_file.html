@@ -1,8 +1,8 @@
 {% extends "main/base.html" %}
 {% load static %}
-{% block title %}Перемещение файла - KOD OS{% endblock %}
+{% block title %}Move a file - KOD OS{% endblock %}
 {% block content %}
-<h1>Перемещение файла</h1>
+<h1>Move a file</h1>
 {% if error %}
   <div style="color: red; font-weight: bold; margin-bottom: 10px;">{{ error }}</div>
 {% endif %}
@@ -10,11 +10,11 @@
     {% csrf_token %}
     {# Скрытое поле для исходного файла #}
     <input type="hidden" name="file" value="{{ file }}">
-    <label for="destination">Целевая папка:</label><br>
+    <label for="destination">Target folder:</label><br>
     <input type="text" id="destination" name="destination" placeholder="Введите путь к целевой папке" style="width: 100%; padding: 10px; background: #000; color: #0F0; border: 1px solid #0F0;"><br><br>
     <div class="button-container">
-         <button type="submit" class="btn">Переместить</button>
-         <a href="{% url 'file_manager' %}" class="btn">Отмена</a>
+         <button type="submit" class="btn">Move</button>
+         <a href="{% url 'file_manager' %}" class="btn">Cancell</a>
     </div>
 </form>
 {% endblock %}

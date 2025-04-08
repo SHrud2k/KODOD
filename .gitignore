@@ -1,12 +1,13 @@
-.venv
-KOD OS 1.5
+/.venv
+/KOD OS 1.5
 
-config.ini
-logs
-db.sqlite3
-hidden_folders.json
-main/settings.py
-main/tests.py
+/config.ini
+/logs
+/db.sqlite3
+/hidden_folders.json
+/main/settings.py
+/main/tests.py
+/file_tree.py
 
 .idea/.gitignore
 .idea/KODOD.iml
