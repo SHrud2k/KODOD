@@ -103,25 +103,7 @@ vsu = Vsu
     ├── css
     │   └── animations.css
     ├── images
-    │   ├── deck.png
-    │   ├── favicon_.ico
-    │   ├── favicon_clear_sky.ico
-    │   ├── favicon_default.ico
-    │   ├── favicon_mercs.ico
-    │   ├── favicon_science.ico
-    │   ├── favicon_vsu.ico
-    │   ├── file_add.png
-    │   ├── file_delete.png
-    │   ├── folder_add.png
-    │   ├── folder_delete.png
-    │   ├── logo_.png
-    │   ├── logo_clear_sky.png
-    │   ├── logo_default.png
-    │   ├── logo_mercs.png
-    │   ├── logo_science.png
-    │   ├── logo_vsu.png
-    │   ├── move_dest.png
-    │   └── move_file.png
+    │   └── Папка статик изображений.
     ├── js
     │   ├── ascii.js
     │   ├── blackjack.js
