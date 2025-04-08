@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", function(){
     console.log("Hacking game script loaded");
 
-    // Вспомогательная функция для fetch JSON
+    // Функция для получения JSON через fetch
     function fetchJSON(url) {
-        return fetch(url).then(function(response) {
+        return fetch(url).then(function(response){
             return response.json();
         });
     }
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function(){
         return selected;
     }
 
-    // Функция генерации случайного шума: от 4 до 20 символов, без лишнего экранирования
+    // Функция генерации случайного шума: от 4 до 20 символов
     function generateNoise(){
         var chars = '!@#$%^&*()-_=+[]{};:\'",.<>/?|';
         var noise = "";
@@ -45,13 +45,61 @@ document.addEventListener("DOMContentLoaded", function(){
         return score;
     }
 
-    // Отключает клики по вариантам
+    // Отключает клики по вариантам (делает их неактивными)
     function disableWords(){
         var spans = document.getElementById("word-list").getElementsByTagName("span");
         for (var i = 0; i < spans.length; i++){
             spans[i].style.pointerEvents = "none";
             spans[i].style.opacity = "0.5";
         }
+    }
+
+    // Функция, возвращающая варианты к исходному виду (разблокировка кнопок)
+    function enableWords(){
+        var spans = document.getElementById("word-list").getElementsByTagName("span");
+        for (var i = 0; i < spans.length; i++){
+            spans[i].style.pointerEvents = "auto";
+            spans[i].style.opacity = "1";
+        }
+    }
+
+    // Функция запуска persistent countdown.
+    // Если в localStorage уже сохранён конечный момент (в мс), обновляет отсчёт и блокирует выбор слов.
+    function startPersistentCountdown(restartTimeout) {
+        var resultEl = document.getElementById("result");
+        var restartBtn = document.getElementById("restart");
+        var storedEndTime = localStorage.getItem("hackingCountdown");
+        var now = Date.now();
+        if (!storedEndTime || now >= Number(storedEndTime)) {
+            return;
+        }
+        // Блокируем выбор вариантов, но не перекрываем весь экран
+        disableWords();
+        var countdown = Math.ceil((Number(storedEndTime) - now) / 1000);
+        resultEl.textContent = "Failed! Attempt limit reached. Try again after " + countdown + " seconds.";
+        var countdownInterval = setInterval(function(){
+            var remaining = Math.ceil((Number(storedEndTime) - Date.now()) / 1000);
+            if (remaining > 0) {
+                resultEl.textContent = "Failed! Attempt limit reached. Try again after " + remaining + " seconds.";
+            } else {
+                clearInterval(countdownInterval);
+                localStorage.removeItem("hackingCountdown");
+                restartBtn.style.display = "inline-block";
+                resultEl.textContent = "";
+                enableWords();
+            }
+        }, 1000);
+    }
+
+    // Проверяет наличие активного таймера в localStorage.
+    // Если есть и время не истекло, запускает persistent countdown и возвращает true.
+    function checkPersistentCountdown(restartTimeout) {
+        var storedEndTime = localStorage.getItem("hackingCountdown");
+        if (storedEndTime && Date.now() < Number(storedEndTime)) {
+            startPersistentCountdown(restartTimeout);
+            return true;
+        }
+        return false;
     }
 
     // Основная функция инициализации мини-игры
@@ -61,14 +109,14 @@ document.addEventListener("DOMContentLoaded", function(){
         var restartBtn = document.getElementById("restart");
         var historyEl = document.getElementById("history");
         var attemptCounter = 0;
-    
+
         // Функция добавления записи в историю
         function addHistoryEntry(selectedWord, score) {
             var entry = document.createElement("div");
             entry.textContent = "[" + selectedWord + "] - [" + score + "] - Attempt: [" + attemptCounter + "/" + allowedAttempts + "]";
             historyEl.appendChild(entry);
         }
-    
+
         // Рендер вариантов слов
         function renderWords() {
             wordListEl.innerHTML = "";
@@ -83,6 +131,8 @@ document.addEventListener("DOMContentLoaded", function(){
                 span.style.padding = "0";
                 span.style.margin = "0";
                 span.addEventListener("click", function(){
+                    // Если таймер активен (выключенные варианты), ничего не делаем
+                    if (resultEl.textContent.indexOf("Try again after") !== -1) return;
                     if (this.style.color === "gray") return;
                     attemptCounter++;
                     var score = computeScore(word, correctWord);
@@ -94,20 +144,12 @@ document.addEventListener("DOMContentLoaded", function(){
                         restartBtn.style.display = "inline-block";
                     } else {
                         if (attemptCounter >= allowedAttempts) {
-                            disableWords();
-                            var countdown = restartTimeout;
-                            resultEl.textContent = "Failed! Attemp limit reached. Try again after " + countdown + " seconds.";
-                            var countdownInterval = setInterval(function(){
-                                countdown--;
-                                if (countdown > 0) {
-                                    resultEl.textContent = "Failed! Attemp limit reached. Try again after " + countdown + " seconds.";
-                                } else {
-                                    clearInterval(countdownInterval);
-                                }
-                            }, 1000);
-                            setTimeout(function(){
-                                restartBtn.style.display = "inline-block";
-                            }, restartTimeout * 1000);
+                            // Если попытки закончились и таймер еще не установлен, сохраняем таймер в localStorage
+                            if (!localStorage.getItem("hackingCountdown")) {
+                                localStorage.setItem("hackingCountdown", Date.now() + restartTimeout * 1000);
+                            }
+                            // Запускаем persistent countdown, который блокирует выбор вариантов и отображает таймер
+                            startPersistentCountdown(restartTimeout);
                         }
                     }
                     if (word !== correctWord) {
@@ -117,20 +159,25 @@ document.addEventListener("DOMContentLoaded", function(){
                 wordListEl.appendChild(span);
             });
         }
-    
+
+        // При клике на кнопку рестарта перезагружаем страницу
         restartBtn.addEventListener("click", function(){
             location.reload();
         });
-    
+
         renderWords();
     }
-    
-    // Цепочка загрузки: сначала настройки, затем слова
+
+    // Загрузка настроек игры и слов, затем инициализация игры
     fetchJSON("/static/json/minigame_settings.json")
       .then(function(settingsData) {
           var allowedAttempts = settingsData.allowed_attempts;
           var restartTimeout = settingsData.restart_timeout;
           console.log("Settings:", allowedAttempts, restartTimeout);
+          // Если таймер уже активен, блокировка выбора уже запустится
+          if (checkPersistentCountdown(restartTimeout)) {
+              console.log("Timer active – game is locked");
+          }
           return fetchJSON("/static/json/hacking_words.json")
             .then(function(wordsData) {
                 var availableWords = wordsData;
@@ -152,11 +199,4 @@ document.addEventListener("DOMContentLoaded", function(){
       .catch(function(error) {
           console.error("Failed to load settings:", error);
       });
-    
-    // Определение fetchJSON, чтобы не дублировать код
-    function fetchJSON(url) {
-        return fetch(url).then(function(response) {
-            return response.json();
-        });
-    }
 });

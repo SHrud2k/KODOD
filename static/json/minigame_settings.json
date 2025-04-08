@@ -1,4 +1,4 @@
 {
   "allowed_attempts": 3,
-  "restart_timeout": 120
+  "restart_timeout": 360
 }
