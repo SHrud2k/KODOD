@@ -63,6 +63,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 span.innerText = hand[0].value + hand[0].suit + " ";
                 span.style.display = "inline-block";
                 span.style.marginRight = "5px";
+                span.style.background = "#0F0";
+                span.style.color = "#000";
+                span.style.padding = "5px 8px";
+                span.style.border = "1px solid #000";
+                span.style.borderRadius = "4px";
+                span.style.fontFamily = "Courier New, monospace";
                 if (lastDealerCount === 0) {
                     span.classList.add("fade-in-card");
                 }
@@ -83,6 +89,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 span.innerText = card.value + card.suit + " ";
                 span.style.display = "inline-block";
                 span.style.marginRight = "5px";
+                span.style.background = "#0F0";
+                span.style.color = "#000";
+                span.style.padding = "5px 8px";
+                span.style.border = "1px solid #000";
+                span.style.borderRadius = "4px";
+                span.style.fontFamily = "Courier New, monospace";
                 if ((isDealer && index >= lastDealerCount) || (!isDealer && index >= lastPlayerCount)) {
                     span.classList.add("fade-in-card");
                 }
@@ -183,6 +195,8 @@ document.addEventListener("DOMContentLoaded", function() {
         messageDiv.innerText = "";
         hitBtn.disabled = false;
         standBtn.disabled = false;
+        hitBtn.style.display = "inline-block";
+        standBtn.style.display = "inline-block";
         restartBtn.style.display = "none";
         // Раздаем по 2 карты игроку и дилеру
         playerHand.push(deck.pop(), deck.pop());
@@ -225,6 +239,8 @@ document.addEventListener("DOMContentLoaded", function() {
         messageDiv.innerText = result;
         hitBtn.disabled = true;
         standBtn.disabled = true;
+        hitBtn.style.display = "none";
+        standBtn.style.display = "none";
         restartBtn.style.display = "inline-block";
         updateDisplay();
     }
