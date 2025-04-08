@@ -1,6 +1,6 @@
 {% extends "main/base.html" %}
 {% load static %}
-{% block title %}Просмотр файла: {{ filename }} - KOD OS{% endblock %}
+{% block title %}File view: {{ filename }} - KOD OS{% endblock %}
 {% block extra_head %}
 <style>
   /* Обеспечиваем корректный перенос строк и разбиение длинных слов */
@@ -19,15 +19,15 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1>Просмотр файла</h1>
+<h1>File view</h1>
 <div class="terminal-box">
-    <div class="filename-heading">Файл: {{ filename }}</div>
+    <div class="filename-heading">File: {{ filename }}</div>
     <!-- Контейнер для динамического вывода содержимого -->
     <div id="content"></div>
 </div>
 <div class="button-container">
-    <a href="{% url 'file_manager' %}" class="btn">Вернуться к менеджеру файлов</a>
-    <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Редактировать</a>
+    <a href="{% url 'file_manager' %}" class="btn">Back to File manager</a>
+    <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Edit</a>
 </div>
 <!-- Скрытый элемент для хранения исходного текста файла -->
 <script id="fileContent" type="text/plain">{{ content|escapejs }}</script>

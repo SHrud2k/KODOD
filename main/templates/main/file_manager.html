@@ -2,7 +2,7 @@
 {% load static %}
 {% block title %}Файловый менеджер - KOD OS{% endblock %}
 {% block content %}
-<h1>Файловый менеджер</h1>
+<h1>File manager</h1>
 {% if error %}
   <div style="color: red; font-weight: bold; margin-bottom: 10px;">{{ error }}</div>
 {% endif %}
@@ -12,6 +12,6 @@
     </div>
 </div>
 <div class="button-container">
-    <a href="{% url 'login' %}" class="btn">Выйти</a>
+    <a href="{% url 'login' %}" class="btn">Exit</a>
 </div>
 {% endblock %}

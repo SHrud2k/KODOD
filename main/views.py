@@ -210,13 +210,16 @@ def file_manager(request):
         return redirect("login")
     current_user = request.session.get("login", "unknown")
     superadmin = read_folder_visibility_config()  # Например, "admin"
+    user_group = get_user_group(current_user)
+    config = configparser.ConfigParser()
+    config_path = os.path.join(BASE_DIR, "config.ini")
+    config.read(config_path)
 
     # Если пользователь является суперадмином, ему показываем все файлы
     if current_user == superadmin:
         folder_path = FILES_FOLDER
     else:
         # Определяем группу пользователя
-        user_group = get_user_group(current_user)
         if user_group is None:
             error = "Вам не назначена группа доступа — файлы не отображаются."
             return render(request, "main/file_manager.html", {
@@ -232,6 +235,12 @@ def file_manager(request):
             folder_path = os.path.join(FILES_FOLDER, allowed_folder_name)
         else:
             folder_path = FILES_FOLDER
+
+    if user_group is not None:
+        background = ("images/background_"+user_group+".gif")
+    else:
+        background = "images/background_default.gif"
+
     tree = build_file_tree(folder_path, current_user)
     error = request.GET.get("error", "")
     access_levels = read_access_levels()
@@ -242,6 +251,7 @@ def file_manager(request):
         "current_user": current_user,
         "superadmin": superadmin,
         "access_level": user_level,
+        "background_path": background,
     })
 
 
@@ -260,6 +270,7 @@ def file_view(request):
     filename = os.path.basename(file_path)
     current_user = request.session.get("login", "unknown")
     superadmin = read_folder_visibility_config()  # Значение из [folder_visibility], например, "admin"
+    user_group = get_user_group(current_user)
 
     # Если пользователь не является суперадмином, применяем групповые ограничения
     if current_user != superadmin:
@@ -273,16 +284,29 @@ def file_view(request):
             if not abs_file_path.startswith(abs_allowed_folder):
                 return HttpResponse("Доступ запрещён")
 
+    if user_group is not None:
+        background = ("images/background_"+user_group+".gif")
+    else:
+        background = "images/background_default.gif"
+
     # Обработка мини-игр по имени файла
     lower_filename = filename.lower()
     if lower_filename in ("snake", "snake.txt"):
-        return render(request, "main/snake.html")
+        return render(request, "main/snake.html",{
+        "background_path": background,
+    })
     elif lower_filename in ("pong", "pong.txt"):
-        return render(request, "main/pong.html")
+        return render(request, "main/pong.html",{
+        "background_path": background,
+    })
     elif lower_filename in ("div", "div.txt"):
-        return render(request, "main/hacking.html")
+        return render(request, "main/hacking.html",{
+        "background_path": background,
+    })
     elif lower_filename in ("blackjack", "blackjack.txt"):
-        return render(request, "main/blackjack.html")
+        return render(request, "main/blackjack.html",{
+        "background_path": background,
+    })
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -298,7 +322,8 @@ def file_view(request):
     return render(request, "main/file_view.html", {
         "content": content,
         "file": file_path,
-        "filename": filename
+        "filename": filename,
+        "background_path": background,
     })
 
 def process_file_content(content):
@@ -365,6 +390,14 @@ def edit_file(request):
     if filename in restricted_files:
         return HttpResponse("Редактирование этого файла запрещено.")
 
+    current_user = request.session.get("login", "unknown")
+    user_group = get_user_group(current_user)
+
+    if user_group is not None:
+        background = ("images/background_"+user_group+".gif")
+    else:
+        background = "images/background_default.gif"
+
     if request.method == "POST":
         new_content = request.POST.get("content", "")
         try:
@@ -384,6 +417,8 @@ def edit_file(request):
             "file": file_path,
             "filename": filename,
             "content": content,
+            "background_path": background,
+
         })
 
 def create_folder(request):

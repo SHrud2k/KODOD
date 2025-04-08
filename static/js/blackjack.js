@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // До раскрытия скрытой карты (dealerTurn==false) для дилера показывается первая карта и placeholder.
     // Когда dealerTurn==true или игра окончена, отображаются все карты дилера.
     function renderHand(container, hand, isDealer = false) {
-        container.innerHTML = (isDealer ? "Карты дилера: " : "Ваши карты: ");
+        container.innerHTML = (isDealer ? "Dealer's cards: " : "Player's cards: ");
         if (isDealer && !dealerTurn && !gameOver) {
             // До раскрытия скрытой карты показываем только первую карту
             if (hand.length > 0) {
@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function() {
             placeholder.style.display = "inline-block";
             placeholder.style.marginRight = "5px";
             container.appendChild(placeholder);
-            container.innerHTML += " (Счет: ?)";
+            container.innerHTML += " (Score: ?)";
             lastDealerCount = hand.length;
         } else {
             // Отображаем все карты
@@ -101,10 +101,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 container.appendChild(span);
             });
             if (!isDealer) {
-                container.innerHTML += " (Счет: " + handScore(hand) + ")";
+                container.innerHTML += " (Score: " + handScore(hand) + ")";
                 lastPlayerCount = hand.length;
             } else {
-                container.innerHTML += " (Счет: " + handScore(hand) + ")";
+                container.innerHTML += " (Score: " + handScore(hand) + ")";
                 lastDealerCount = hand.length;
             }
         }
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
         dealerTurn = false;
         lastPlayerCount = 0;
         lastDealerCount = 0;
-        statusDiv.innerText = "Ваш ход";
+        statusDiv.innerText = "Your turn";
         messageDiv.innerText = "";
         hitBtn.disabled = false;
         standBtn.disabled = false;
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
         playerHand.push(deck.pop());
         updateDisplay();
         if (handScore(playerHand) > 21) {
-            endGame("Вы проиграли! Перебор.");
+            endGame("You've lost! Overdraft.");
         }
     }
 
@@ -222,20 +222,20 @@ document.addEventListener("DOMContentLoaded", function() {
             let playerScore = handScore(playerHand);
             let dealerScore = handScore(dealerHand);
             if (dealerScore > 21) {
-                endGame("Вы выиграли! Дилер перебор.");
+                endGame("You've won! Dealer's overdraft.");
             } else if (playerScore === dealerScore) {
-                endGame("Ничья.");
+                endGame("Draw.");
             } else if (playerScore > dealerScore) {
-                endGame("Вы выиграли!");
+                endGame("You've won!");
             } else {
-                endGame("Вы проиграли.");
+                endGame("You've lost.");
             }
         });
     }
 
     function endGame(result) {
         gameOver = true;
-        statusDiv.innerText = "Игра окончена";
+        statusDiv.innerText = "Game over...";
         messageDiv.innerText = result;
         hitBtn.disabled = true;
         standBtn.disabled = true;

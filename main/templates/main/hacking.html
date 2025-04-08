@@ -2,16 +2,16 @@
 {% load static %}
 {% block title %}Hacking - KOD OS{% endblock %}
 {% block content %}
-<h1 style="text-align: center;">Взлом компьютера</h1>
-<div id="game-container" style="margin: 20px auto; padding: 10px; border: 2px solid #0F0; text-align: center;">
-  <p>Выберите слово:</p>
+<h1 style="text-align: center;">Hack in process...</h1>
+<div id="game-container" style="margin: 20px auto; padding: 10px; border: 2px solid #0F0; text-align: center; background: #000;">
+  <p>Choose a word:</p>
   <div id="word-list" style="display: inline; white-space: normal;"></div>
   <p id="result" style="font-size: 18px; font-weight: bold;"></p>
   <div id="history" style="margin-top: 10px; font-size: 14px; text-align: left;"></div>
 </div>
 <div class="button-container">
-  <button id="restart" class="btn" style="display:none;">Начать заново</button>
-  <a href="{% url 'file_manager' %}" class="btn">Вернуться</a>
+  <button id="restart" class="btn" style="display:none;">Try again</button>
+  <a href="{% url 'file_manager' %}" class="btn">Return</a>
 </div>
 {% endblock %}
 {% block extra_js %}

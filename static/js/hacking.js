@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function(){
         // Функция добавления записи в историю
         function addHistoryEntry(selectedWord, score) {
             var entry = document.createElement("div");
-            entry.textContent = "[" + selectedWord + "] - [" + score + "] - Попытка: [" + attemptCounter + "/" + allowedAttempts + "]";
+            entry.textContent = "[" + selectedWord + "] - [" + score + "] - Attempt: [" + attemptCounter + "/" + allowedAttempts + "]";
             historyEl.appendChild(entry);
         }
     
@@ -86,21 +86,21 @@ document.addEventListener("DOMContentLoaded", function(){
                     if (this.style.color === "gray") return;
                     attemptCounter++;
                     var score = computeScore(word, correctWord);
-                    resultEl.textContent = "Совпадений: " + score + " из " + correctWord.length;
+                    resultEl.textContent = "Matches: " + score + " из " + correctWord.length;
                     addHistoryEntry(word, score);
                     if (word === correctWord) {
-                        resultEl.textContent += " - Доступ разрешён!";
+                        resultEl.textContent += " - Access granted!";
                         disableWords();
                         restartBtn.style.display = "inline-block";
                     } else {
                         if (attemptCounter >= allowedAttempts) {
                             disableWords();
                             var countdown = restartTimeout;
-                            resultEl.textContent = "Провал! Попытки исчерпаны. Начните заново через " + countdown + " секунд.";
+                            resultEl.textContent = "Failed! Attemp limit reached. Try again after " + countdown + " seconds.";
                             var countdownInterval = setInterval(function(){
                                 countdown--;
                                 if (countdown > 0) {
-                                    resultEl.textContent = "Провал! Попытки исчерпаны. Начните заново через " + countdown + " секунд.";
+                                    resultEl.textContent = "Failed! Attemp limit reached. Try again after " + countdown + " seconds.";
                                 } else {
                                     clearInterval(countdownInterval);
                                 }
@@ -150,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function(){
             });
       })
       .catch(function(error) {
-          console.error("Ошибка загрузки настроек:", error);
+          console.error("Failed to load settings:", error);
       });
     
     // Определение fetchJSON, чтобы не дублировать код
