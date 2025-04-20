@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .decorators import rate_limit
 
 # Базовая директория проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -114,49 +115,57 @@ def log_event(event_type, message):
     except Exception as e:
         print("Log write error:", e)
 
-def get_user_group(user):
+def get_user_groups(user):
     """
-    Определяет группу, в которую входит пользователь, сверяя его логин с данными из секции [groups] config.ini.
-    Если пользователь не найден в группах, возвращает None.
+    Возвращает список групп, в которые входит пользователь.
+    Читает секцию [groups] из config.ini.
+    Например, если пользователь test встречается в группах science и mercs,
+    возвращается список ["science", "mercs"].
     """
     config = configparser.ConfigParser()
     config_path = os.path.join(BASE_DIR, "config.ini")
     config.read(config_path)
+    groups = []
     if config.has_section("groups"):
         for group in config.options("groups"):
             users_str = config.get("groups", group)
             users = [u.strip() for u in users_str.split(",") if u.strip()]
             if user in users:
-                return group
-    return None
+                groups.append(group)
+    return groups
 
-def get_group_folder(user_group):
+def get_group_folders(user_group):
     """
-    Для заданной группы (например, "group1") возвращает название разрешённой корневой папки,
-    как указано в секции [group_folders] config.ini.
-    Если группа не задана или не найдена, возвращает None.
+    Для заданной группы возвращает список разрешённых корневых папок,
+    указанных в секции [group_folders] конфигурационного файла.
+    Если группа не задана или не найдена, возвращается пустой список.
+    Например, для группы clear_sky может вернуться ["Clear_sky", "Science"].
     """
     config = configparser.ConfigParser()
     config_path = os.path.join(BASE_DIR, "config.ini")
     config.read(config_path)
     if user_group and config.has_section("group_folders") and config.has_option("group_folders", user_group):
-        return config.get("group_folders", user_group).strip()
-    return None
+        folders_str = config.get("group_folders", user_group)
+        return [f.strip() for f in folders_str.split(",") if f.strip()]
+    return []
 
 # ---------------------- Представления ----------------------
 
+@rate_limit('login', max_attempts=5, timeout=300)  # 5 attempts per 5 minutes
 def login_view(request):
     credentials = read_credentials()
     if request.method == "POST":
         login_input = request.POST.get("login", "")
         password_input = request.POST.get("password", "")
+        
+        # First check credentials without setting session
         if login_input in credentials and password_input == credentials[login_input]:
+            # Only set session after successful authentication
             request.session['logged_in'] = True
             request.session['login'] = login_input
-            # Определяем группу пользователя и сохраняем её в сессии.
-            user_group = get_user_group(login_input)
-            # Если группа не найдена, устанавливаем fallback, например "default"
-            request.session['login_group'] = user_group if user_group else "default"
+            # Now save the list of groups for the user
+            groups = get_user_groups(login_input)
+            request.session['login_groups'] = groups if groups else ["default"]
             log_event("SUCCESS", f"login='{login_input}'")
             return redirect("file_manager")
         else:
@@ -190,7 +199,6 @@ def build_file_tree(path, current_user=None):
                     "full_path": full_path,
                     "children": build_file_tree(full_path, current_user)
                 }
-                # Для суперадмина добавляем флаг скрытости
                 if current_user == superadmin:
                     node["is_hidden"] = rel_path in hidden
                 tree.append(node)
@@ -204,23 +212,19 @@ def build_file_tree(path, current_user=None):
         print("Ошибка при построении дерева:", e)
     return tree
 
-
 def file_manager(request):
     if not request.session.get("logged_in"):
         return redirect("login")
     current_user = request.session.get("login", "unknown")
     superadmin = read_folder_visibility_config()  # Например, "admin"
-    user_group = get_user_group(current_user)
-    config = configparser.ConfigParser()
-    config_path = os.path.join(BASE_DIR, "config.ini")
-    config.read(config_path)
-
-    # Если пользователь является суперадмином, ему показываем все файлы
+    # Если пользователь является суперадмином, показываем все файлы.
     if current_user == superadmin:
         folder_path = FILES_FOLDER
+        tree = build_file_tree(folder_path, current_user)
     else:
-        # Определяем группу пользователя
-        if user_group is None:
+        # Получаем список групп, к которым принадлежит пользователь.
+        user_groups = get_user_groups(current_user)
+        if not user_groups:
             error = "Вам не назначена группа доступа — файлы не отображаются."
             return render(request, "main/file_manager.html", {
                 "tree": [],
@@ -229,19 +233,26 @@ def file_manager(request):
                 "superadmin": superadmin,
                 "access_level": read_access_levels().get(current_user, 1),
             })
-        # Получаем разрешённую папку для группы
-        allowed_folder_name = get_group_folder(user_group)
-        if allowed_folder_name:
-            folder_path = os.path.join(FILES_FOLDER, allowed_folder_name)
+        # Для каждой группы получаем список разрешённых папок и объединяем их
+        allowed_folders = []
+        for group in user_groups:
+            allowed_folders.extend(get_group_folders(group))
+        # Если есть хотя бы одна разрешённая папка, строим дерево файлов для каждой из них и объединяем
+        if allowed_folders:
+            tree = []
+            for folder_name in allowed_folders:
+                folder_path_candidate = os.path.join(FILES_FOLDER, folder_name)
+                tree.extend(build_file_tree(folder_path_candidate, current_user))
+            # При необходимости можно отсортировать объединённое дерево:
+            tree.sort(key=lambda node: node["name"].lower())
         else:
-            folder_path = FILES_FOLDER
-
-    if user_group is not None:
-        background = ("images/background_"+user_group+".gif")
+            tree = build_file_tree(FILES_FOLDER, current_user)
+    # Определяем фон: используем фон для первой группы пользователя (вы можете изменить логику выбора)
+    user_groups = get_user_groups(current_user)
+    if user_groups:
+        background = "images/background_" + user_groups[0] + ".gif"
     else:
         background = "images/background_default.gif"
-
-    tree = build_file_tree(folder_path, current_user)
     error = request.GET.get("error", "")
     access_levels = read_access_levels()
     user_level = access_levels.get(current_user, 1)
@@ -253,7 +264,6 @@ def file_manager(request):
         "access_level": user_level,
         "background_path": background,
     })
-
 
 def file_view(request):
     if not request.session.get("logged_in"):
@@ -270,43 +280,40 @@ def file_view(request):
     filename = os.path.basename(file_path)
     current_user = request.session.get("login", "unknown")
     superadmin = read_folder_visibility_config()  # Значение из [folder_visibility], например, "admin"
-    user_group = get_user_group(current_user)
+    # Получаем список групп пользователя
+    user_groups = get_user_groups(current_user)
+    user_group = user_groups[0] if user_groups else None
 
-    # Если пользователь не является суперадмином, применяем групповые ограничения
+    # Если пользователь не суперадмин, применяем групповые ограничения
     if current_user != superadmin:
-        user_group = get_user_group(current_user)
         if user_group is None:
             return HttpResponse("Доступ запрещён")
-        allowed_folder_name = get_group_folder(user_group)
-        if allowed_folder_name:
-            allowed_folder = os.path.join(FILES_FOLDER, allowed_folder_name)
-            abs_allowed_folder = os.path.abspath(allowed_folder)
-            if not abs_file_path.startswith(abs_allowed_folder):
+        allowed_folders = get_group_folders(user_group)  # возвращает список, например, ["Clear_sky", "Science"]
+        if allowed_folders:
+            allowed = False
+            for folder_name in allowed_folders:
+                allowed_folder = os.path.join(FILES_FOLDER, folder_name)
+                abs_allowed_folder = os.path.abspath(allowed_folder)
+                if abs_file_path.startswith(abs_allowed_folder):
+                    allowed = True
+                    break
+            if not allowed:
                 return HttpResponse("Доступ запрещён")
-
-    if user_group is not None:
-        background = ("images/background_"+user_group+".gif")
+    if user_group:
+        background = "images/background_" + user_group + ".gif"
     else:
         background = "images/background_default.gif"
 
-    # Обработка мини-игр по имени файла
+    # Обработка разных мини-игр по имени файла
     lower_filename = filename.lower()
     if lower_filename in ("snake", "snake.txt"):
-        return render(request, "main/snake.html",{
-        "background_path": background,
-    })
+        return render(request, "main/snake.html", {"background_path": background})
     elif lower_filename in ("pong", "pong.txt"):
-        return render(request, "main/pong.html",{
-        "background_path": background,
-    })
+        return render(request, "main/pong.html", {"background_path": background})
     elif lower_filename in ("div", "div.txt"):
-        return render(request, "main/hacking.html",{
-        "background_path": background,
-    })
+        return render(request, "main/hacking.html", {"background_path": background})
     elif lower_filename in ("blackjack", "blackjack.txt"):
-        return render(request, "main/blackjack.html",{
-        "background_path": background,
-    })
+        return render(request, "main/blackjack.html", {"background_path": background})
 
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -327,14 +334,9 @@ def file_view(request):
     })
 
 def process_file_content(content):
-    """
-    Ищет в тексте URL изображений (jpg, jpeg, png, gif), включая параметры запроса,
-    и заменяет их на тег <img>. Теперь используется жадный квантификатор.
-    """
     pattern = r'(https?://[^\s]+\.(?:jpg|jpeg|png|gif)(?:\?[^\s]+)?)(?=$|\s|[\'"<>])'
     def repl(match):
         url = match.group(1)
-        # Заменяем амперсанды на HTML-сущность для корректного отображения
         safe_url = url.replace("&", "&amp;")
         return f'<img src="{safe_url}" alt="Image" style="max-width:100%; margin:5px 0;">'
     processed = re.sub(pattern, repl, content, flags=re.IGNORECASE)
@@ -389,19 +391,16 @@ def edit_file(request):
     restricted_files, _ = read_restrictions()
     if filename in restricted_files:
         return HttpResponse("Редактирование этого файла запрещено.")
-
     current_user = request.session.get("login", "unknown")
-    user_group = get_user_group(current_user)
-
-    if user_group is not None:
-        background = ("images/background_"+user_group+".gif")
+    user_group = get_user_groups(current_user)[0] if get_user_groups(current_user) else None
+    if user_group:
+        background = "images/background_"+user_group+".gif"
     else:
         background = "images/background_default.gif"
-
     if request.method == "POST":
-        new_content = request.POST.get("content", "")
+        new_content = request.POST.get("content", "").rstrip()  # Remove trailing whitespace
         try:
-            with open(file_path, "w", encoding="utf-8") as f:
+            with open(file_path, "w", encoding="utf-8", newline='') as f:  # Use newline='' to prevent extra line endings
                 f.write(new_content)
             log_event("EDITED", f"user='{request.session.get('login', 'unknown')}', file='{filename}'")
             return redirect(f"/file-view/?file={file_path}")
@@ -409,8 +408,8 @@ def edit_file(request):
             return HttpResponse("Ошибка сохранения файла: " + str(e))
     else:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+            with open(file_path, "r", encoding="utf-8", newline='') as f:  # Use newline='' when reading too
+                content = f.read().rstrip()  # Remove trailing whitespace when reading
         except Exception as e:
             content = "Ошибка открытия файла: " + str(e)
         return render(request, "main/edit_file.html", {
@@ -418,7 +417,6 @@ def edit_file(request):
             "filename": filename,
             "content": content,
             "background_path": background,
-
         })
 
 def create_folder(request):
@@ -512,8 +510,6 @@ def move_file(request):
     if access_levels.get(user, 1) < 2:
         error_msg = "У вас нет прав на перемещение файлов."
         return redirect(f"/file-manager/?{urlencode({'error': error_msg})}")
-
-    # Исходный файл передаётся через GET-параметр "file"
     source_file = request.GET.get("file")
     if not source_file:
         return HttpResponseBadRequest("Исходный файл не указан")
@@ -522,12 +518,9 @@ def move_file(request):
         return HttpResponse("Доступ запрещён")
     if not os.path.exists(source_file) or os.path.isdir(source_file):
         return HttpResponse("Исходный файл не найден или это папка")
-
     if request.method == "GET":
-        # Отображаем форму перемещения файла
         return render(request, "main/move_file.html", {"file": source_file})
     elif request.method == "POST":
-        # Обрабатываем данные формы: целевая папка передаётся в поле "destination"
         destination = request.POST.get("destination", "").strip()
         if not destination:
             error_msg = "Укажите целевую папку."
@@ -536,8 +529,6 @@ def move_file(request):
         if not abs_destination.startswith(os.path.abspath(FILES_FOLDER)) or not os.path.isdir(abs_destination):
             error_msg = "Целевая папка не найдена или доступ запрещён."
             return render(request, "main/move_file.html", {"error": error_msg, "file": source_file})
-
-        # Формируем целевой путь: в целевой папке файл с тем же именем
         filename = os.path.basename(source_file)
         target_file = os.path.join(destination, filename)
         if os.path.exists(target_file):
@@ -550,37 +541,26 @@ def move_file(request):
         except Exception as e:
             error_msg = "Ошибка перемещения файла: " + str(e)
             return render(request, "main/move_file.html", {"error": error_msg, "file": source_file})
-
 @csrf_exempt
 def move_file_ajax(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            # Декодируем входящие данные
             file_path = unquote(data.get("file"))
             dest_folder = unquote(data.get("folder"))
-
             BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             ALLOWED_FOLDER = os.path.join(BASE_DIR, "KOD OS 1.5")
             abs_file_path = os.path.abspath(file_path)
             abs_dest_folder = os.path.abspath(dest_folder)
-
             if not abs_file_path.startswith(ALLOWED_FOLDER) or not abs_dest_folder.startswith(ALLOWED_FOLDER):
                 return JsonResponse({"success": False, "error": "Доступ запрещён."})
-
-            # Проверяем только по имени файла из restricted_files (не папок)
             restricted_files, _ = read_restrictions()
             filename = os.path.basename(file_path).strip().lower()
             if filename in restricted_files:
                 return JsonResponse({"success": False, "error": "Перемещение этого файла запрещено."})
-
-            # Формируем целевой путь для перемещения
             target_path = os.path.join(dest_folder, filename)
-
-            # Если исходный файл не существует, считаем, что он уже перемещён
             if not os.path.exists(abs_file_path):
                 return JsonResponse({"success": True})
-
             os.rename(file_path, target_path)
             log_event("MOVED", f"user='{request.session.get('login', 'unknown')}', file='{filename}', from='{file_path}', to='{target_path}'")
             return JsonResponse({"success": True})
@@ -589,12 +569,6 @@ def move_file_ajax(request):
     return JsonResponse({"success": False, "error": "Неверный метод запроса."})
 
 def delete_folder(request):
-    """
-    Удаляет указанную папку.
-    Папка удаляется, если она находится внутри FILES_FOLDER, пустая,
-    и если её имя не входит в список ограничений (restricted_folders).
-    Также проверяется, что пользователь имеет права на удаление (уровень доступа ≥ 3).
-    """
     if not request.session.get("logged_in"):
         return redirect("login")
     folder = request.GET.get("folder")
@@ -606,25 +580,18 @@ def delete_folder(request):
         return HttpResponse("Доступ запрещён")
     if not os.path.exists(folder) or not os.path.isdir(folder):
         return HttpResponse("Папка не найдена")
-
-    # Ограничения по удалению папок: используем restricted_folders из [restrictions]
     _, restricted_folders = read_restrictions()
     folder_name = os.path.basename(abs_folder).strip().upper()
     if folder_name in restricted_folders:
         return HttpResponse("Удаление этой папки запрещено.")
-
-    # Проверка прав доступа: удаление (папок) разрешено только пользователям с уровнем доступа ≥ 3.
     access = read_access_levels()
     user = request.session.get("login", "unknown")
     if access.get(user, 1) < 3:
         error_message = "У вас нет прав на удаление папок."
         tree = build_file_tree(FILES_FOLDER, user)
         return render(request, "main/file_manager.html", {"tree": tree, "error": error_message})
-
-    # Дополнительно, удаление папки разрешено только если папка пуста.
     if os.listdir(folder):
         return HttpResponse("Папка не пустая, удаление запрещено.")
-
     try:
         os.rmdir(folder)
         log_event("DELETED_FOLDER", f"user='{user}', folder='{os.path.basename(folder)}'")
@@ -653,6 +620,36 @@ def blackjack_game(request):
     if not request.session.get("logged_in"):
         return redirect("login")
     return render(request, "main/blackjack.html")
+
+def get_glitch_state(request):
+    """
+    Возвращает состояние глич-эффекта из файла glitch_state.json.
+    Если файл не найден или возникла ошибка, возвращает {"glitch_toggle": false}.
+    """
+    glitch_state_file = os.path.join(BASE_DIR, "glitch_state.json")
+    try:
+        with open(glitch_state_file, "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except Exception:
+        state = {"glitch_toggle": False}
+    return JsonResponse(state)
+
+@csrf_exempt
+def update_glitch_state(request):
+    """
+    Обновляет состояние глич-эффекта.
+    Ожидает POST-запрос с JSON: {"glitch_toggle": true/false}
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            glitch_state_file = os.path.join(BASE_DIR, "glitch_state.json")
+            with open(glitch_state_file, "w", encoding="utf-8") as f:
+                json.dump(data, f)
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+    return JsonResponse({"success": False, "error": "Неверный метод запроса."})
 
 def custom_404(request, exception):
     return render(request, "main/404.html", status=404)

@@ -17,6 +17,8 @@ urlpatterns = [
     path('pong/', views.pong_game, name='pong_game'),
     path('hacking/', views.hacking_game, name='hacking_game'),
     path('blackjack/', views.blackjack_game, name='blackjack_game'),
+    path("glitch_state/", views.get_glitch_state, name="get_glitch_state"),
+    path("update_glitch_state/", views.update_glitch_state, name="update_glitch_state"),
 ]
 
 handler404 = "main.views.custom_404"

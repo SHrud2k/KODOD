@@ -15,3 +15,16 @@ function getCachedSound(url) {
     }
     return soundCache[url].cloneNode();
 }
+function playSelectionSound() {
+    var soundEnabled = localStorage.getItem("soundEnabled");
+    // Если значение не установлено, по умолчанию считаем, что звук включён
+    if (soundEnabled === null) {
+        soundEnabled = "true";
+        localStorage.setItem("soundEnabled", "true");
+    }
+    if (soundEnabled !== "true") {
+        return; // Звук отключен — ничего не делаем
+    }
+    var audio = new Audio(SELECT_SOUND_URL);
+    audio.play();
+}

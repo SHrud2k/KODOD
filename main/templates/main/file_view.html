@@ -33,10 +33,12 @@
 <script id="fileContent" type="text/plain">{{ content|escapejs }}</script>
 {% endblock %}
 {% block extra_js %}
+{{ block.super }}
 <script>
   var TYPING_SOUND_URL = "{% static 'sounds/typing.wav' %}";
 </script>
 <!-- Обязательно подключите сначала файл кеширования звуков -->
 <script src="{% static 'js/sound_cache.js' %}"></script>
 <script src="{% static 'js/file_view.js' %}"></script>
+<script src="{% static 'js/sound_toggle.js' %}"></script>
 {% endblock %}

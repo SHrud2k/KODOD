@@ -2,167 +2,75 @@
 <!DOCTYPE html>
 <html>
 <head>
+    {% if request.session.login == superadmin %}
+      <button id="glitch-toggle" style="position: fixed; bottom: 10px; right: 10px; z-index: 9999;">Toggle Glitch</button>
+    {% endif %}
     <meta charset="utf-8">
     <title>{% block title %}KOD OS Terminal{% endblock %}</title>
     {% if request.session.logged_in %}
-        {% with group=request.session.login_group %}
-            <link rel="shortcut icon" href="{% static 'images/favicon_'|add:group|add:'.ico' %}" type="image/x-icon" />
-        {% endwith %}
+        {% comment %}Используем первую группу из login_groups, если она есть, иначе fallback к login_group{% endcomment %}
+        {% if request.session.login_groups %}
+            {% with group=request.session.login_groups.0 %}
+                <link rel="shortcut icon" href="{% static 'images/favicon_'|add:group|add:'.ico' %}" type="image/x-icon" />
+            {% endwith %}
+        {% else %}
+            {% with group=request.session.login_group|default:"default" %}
+                <link rel="shortcut icon" href="{% static 'images/favicon_'|add:group|add:'.ico' %}" type="image/x-icon" />
+            {% endwith %}
+        {% endif %}
     {% else %}
         <link rel="shortcut icon" href="{% static 'images/favicon_default.ico' %}" type="image/x-icon" />
     {% endif %}
-    <style>
-        /* Основной терминальный стиль */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            background-image: url("{% if background_path %}{% static background_path %}{% else %}{% static 'images/background_default.gif' %}{% endif %}");
-            background-size: contain;
-            background-size: 100%;
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-attachment: fixed;
-            position: relative;
-            color: #0F0;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            line-height: 1.5;
-        }
-        .content {
-            position: relative;
-            z-index: 10;
-        }
-        /* Логотип в левом верхнем углу */
-        #logo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 320px;
-            z-index: -1;
-        }
-        #logo img {
-            width: 100%;
-            height: auto;
-        }
-        /* Контейнер основного содержимого */
-        .container {
-            max-width: 1200px;
-            margin: 0px auto 0 auto;
-            padding: 20px;
-        }
-        h1, h2, h3 {
-            color: #0F0;
-            text-shadow: 0 0 5px rgba(0,255,0,0.8);
-        }
-        /* Кнопки */
-        .btn {
-            background: #222;
-            border: 1px solid #0F0;
-            color: #0F0;
-            padding: 10px 20px;
-            text-decoration: none;
-            display: inline-block;
-            margin: 5px;
-            cursor: pointer;
-            transition: background 0.3s, color 0.3s;
-        }
-        .btn:hover {
-            background: #0F0;
-            color: #000;
-        }
-        .button-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 20px;
-        }
-        /* Фиксированное окно терминала */
-        .terminal-box {
-            border: 2px solid #0F0;
-            padding: 15px;
-            box-shadow: 0 0 10px #0F0;
-            margin-bottom: 20px;
-            background: #000;
-            height: 70vh;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #0F0 #111;
-        }
-        .terminal-box::-webkit-scrollbar {
-            width: 8px;
-        }
-        .terminal-box::-webkit-scrollbar-track {
-            background: #111;
-        }
-        .terminal-box::-webkit-scrollbar-thumb {
-            background-color: #0F0;
-            border-radius: 4px;
-            border: 1px solid #0F0;
-        }
-        /* Адаптивность */
-        @media screen and (max-width: 768px) {
-            body { font-size: 14px; }
-            .btn { padding: 8px 16px; }
-            #logo { width: 80px; }
-        }
-        /* Мигающий курсор */
-        @keyframes blink-caret {
-            from, to { border-color: transparent; }
-            50% { border-color: #0F0; }
-        }
-        .blinking-cursor {
-            border-right: 2px solid #0F0;
-            animation: blink-caret 0.7s step-end infinite;
-        }
-        /* Стили для списка файлов */
-        ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        li {
-            margin: 5px 0;
-        }
-        .folder {
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .folder::before {
-            content: "[+] ";
-        }
-        .folder.open::before {
-            content: "[-] ";
-        }
-        a {
-            color: #0F0;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        button:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/base.css' %}">
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body style="
+    background-color: #000;
+    background-image: url('{% if background_path %}{% static background_path|default:'images/background_default.gif' %}{% else %}{% static 'images/background_default.gif' %}{% endif %}');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+">
     <div id="logo">
         {% if request.session.logged_in %}
-            {% with group=request.session.login_group %}
-                <img src="{% static 'images/logo_'|add:group|add:'.png' %}" alt="Логотип {{ group }}">
-            {% endwith %}
+            {% if request.session.login_groups %}
+                {% with group=request.session.login_groups.0 %}
+                    <img src="{% static 'images/logo_'|add:group|add:'.png' %}" alt="Логотип {{ group }}">
+                {% endwith %}
+            {% else %}
+                {% with group=request.session.login_group|default:"default" %}
+                    <img src="{% static 'images/logo_'|add:group|add:'.png' %}" alt="Логотип {{ group }}">
+                {% endwith %}
+            {% endif %}
         {% else %}
             <img src="{% static 'images/logo_default.png' %}" alt="Логотип по умолчанию">
         {% endif %}
     </div>
-    <div id="asciiAnimation"></div>
     <div class="container">
         {% block content %}{% endblock %}
     </div>
     {% block extra_js %}
-    <script src="{% static 'js/sound_cache.js' %}"></script>
-    <script src="{% static 'js/ascii.js' %}"></script>
+        {{ block.super }}
+        <script src="{% static 'js/sound_cache.js' %}"></script>
+        <script src="{% static 'js/ascii.js' %}"></script>
+        <script src="{% static 'js/glitch.js' %}"></script>
+        <script src="{% static 'js/sound_toggle.js' %}"></script>
     {% endblock %}
+    <div id="glitch-container" style="display: none;">
+        <div class="glitch-square" style="animation: glitch-random-1 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-2 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-3 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-4 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-5 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-6 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-7 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-8 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-9 2s infinite ease-in-out;"></div>
+        <div class="glitch-square" style="animation: glitch-random-10 2s infinite ease-in-out;"></div>
+    </div>
+    <div class="sound-control" style="position: fixed; bottom: 10px; right: {% if request.session.login == superadmin %}120px{% else %}10px{% endif %}; z-index: 9999;">
+        <button id="sound-toggle" class="btn" style="background: rgba(0,0,0,0.7); border: 1px solid #0F0; color: #0F0; padding: 5px 10px;">Отключить звук</button>
+    </div>
 </body>
 </html>
