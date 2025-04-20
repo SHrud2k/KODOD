@@ -130,25 +130,29 @@ document.addEventListener("DOMContentLoaded", function(){
                 span.style.padding = "0";
                 span.style.margin = "0";
                 span.addEventListener("click", function(){
-                    // Если таймер активен (выключенные варианты), ничего не делаем
-                    if (resultEl.textContent.indexOf("Try again after") !== -1) return;
+                    // If timer is active or attempts are exhausted, do nothing
+                    if (resultEl.textContent.indexOf("Try again after") !== -1 || attemptCounter >= allowedAttempts) return;
                     if (this.style.color === "gray") return;
+                    
                     attemptCounter++;
                     var score = computeScore(word, correctWord);
                     resultEl.textContent = "Matches: " + score + " из " + correctWord.length;
                     addHistoryEntry(word, score);
+                    
                     if (word === correctWord) {
                         resultEl.textContent += " - Access granted!";
                         disableWords();
                         restartBtn.style.display = "inline-block";
                     } else {
                         if (attemptCounter >= allowedAttempts) {
-                            // Если попытки закончились и таймер еще не установлен, сохраняем таймер в localStorage
+                            resultEl.textContent = "Failed! Attempt limit reached.";
+                            // If timer is not already set, set it
                             if (!localStorage.getItem("hackingCountdown")) {
                                 localStorage.setItem("hackingCountdown", Date.now() + restartTimeout * 1000);
                             }
-                            // Запускаем persistent countdown, который блокирует выбор вариантов и отображает таймер
+                            // Start the countdown and disable words
                             startPersistentCountdown(restartTimeout);
+                            disableWords();
                         }
                     }
                     if (word !== correctWord) {

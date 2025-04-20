@@ -43,11 +43,12 @@ document.addEventListener("DOMContentLoaded", function(){
                 contentDiv.innerHTML += decodedText.charAt(index);
                 index++;
             }
-            if (index % 3 === 0) {
+            // Check if sound is enabled before playing
+            if (index % 9 === 0 && localStorage.getItem("soundEnabled") === "true") {
                 var clone = getCachedSound(typingSoundUrl);
                 clone.play();
             }
-            setTimeout(typeLetter, 25);
+            setTimeout(typeLetter, 5);
         } else {
             contentDiv.innerHTML += '<span class="blinking-cursor"></span>';
         }
