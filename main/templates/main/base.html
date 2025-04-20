@@ -2,9 +2,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    {% if request.session.login == superadmin %}
-      <button id="glitch-toggle" style="position: fixed; bottom: 10px; right: 10px; z-index: 9999;">Toggle Glitch</button>
-    {% endif %}
     <meta charset="utf-8">
     <title>{% block title %}KOD OS Terminal{% endblock %}</title>
     {% if request.session.logged_in %}
