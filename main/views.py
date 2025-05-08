@@ -331,6 +331,7 @@ def file_view(request):
         "file": file_path,
         "filename": filename,
         "background_path": background,
+        "access_level": read_access_levels().get(current_user, 1),
     })
 
 def process_file_content(content):
