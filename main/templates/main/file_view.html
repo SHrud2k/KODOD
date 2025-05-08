@@ -27,7 +27,9 @@
 </div>
 <div class="button-container">
     <a href="{% url 'file_manager' %}" class="btn">Back to File manager</a>
-    <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Edit</a>
+    {% if access_level|default:1 >= 2 %}
+        <a href="{% url 'edit_file' %}?file={{ file|urlencode }}" class="btn">Edit</a>
+    {% endif %}
 </div>
 <!-- Скрытый элемент для хранения исходного текста файла -->
 <script id="fileContent" type="text/plain">{{ content|escapejs }}</script>
